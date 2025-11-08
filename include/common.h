@@ -17,7 +17,6 @@ public:
     ~Socket() { if (fd_ >= 0) close(fd_); }
     Socket(const Socket&) = delete;
     Socket& operator=(const Socket&) = delete;
-    Socket(Socket&& o) noexcept : fd_(o.fd_) { o.fd_ = -1; }
     Socket& operator=(Socket&& o) noexcept {
         if (this != &o) {
             if (fd_ >= 0) close(fd_);
@@ -27,8 +26,20 @@ public:
         return *this;
     }
     int get() const noexcept { return fd_; }
-    int release() noexcept { int t = fd_; fd_ = -1; return t; }
-    void reset(int fd = -1) noexcept { if (fd_ >= 0) close(fd_); fd_ = fd; }
+    
+    int release() noexcept 
+    { 
+        int t = fd_; 
+        fd_ = -1; 
+        return t;
+    }
+
+    void reset(int fd = -1) noexcept 
+    {
+        if (fd >= 0) close(fd_); 
+        fd_ = fd;
+    }
+    
 private:
     int fd_;
 };
@@ -36,4 +47,6 @@ private:
 
 void throw_errno(const char* what);
 void read_line(int fd, std::string *out);
-void send_all(int fd, std::string_view data);
+void send_all(int fd, std::string data);
+void establish_con_client(const Socket& client_sock, std::string_view ip);
+void establish_con_server(const Socket& listener);
