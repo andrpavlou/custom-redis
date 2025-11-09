@@ -6,34 +6,38 @@ void throw_errno(const char* what)
 }
 
 
-void read_line(int fd, std::string *out) 
+ssize_t read_all(int fd, void *out, size_t r_bytes)
 {
-    out->reserve(128);
-    std::string buf(128, '\0');
+    size_t total_read = 0;
+    char *p = static_cast<char *>(out);
 
-    while (true) {
-        ssize_t n = read(fd, buf.data(), buf.size());
+    while (total_read < r_bytes) {
+        ssize_t n = read(fd, p + total_read, r_bytes - total_read);
         if (n < 0) {
             if (errno == EINTR) continue;
-            throw_errno("recv");
+            return -1;
         }
         if (n == 0) break;
-        out->append(buf.data(), static_cast<size_t>(n));
-        if (out->find('\n') != std::string::npos) break;
+        total_read += static_cast<size_t>(n);
     }
+    return static_cast<ssize_t>(total_read);;
 }
 
-void send_all(int fd, std::string data) 
+
+
+ssize_t write_all(int fd, void* data, size_t total_size)
 {
     size_t sent = 0;
-    while (sent < data.size()) {
-        ssize_t n = write(fd, data.data() + sent, data.size() - sent);
+    char *p = static_cast<char *>(data);
+    while (sent < total_size) {
+        ssize_t n = write(fd, p + sent, total_size - sent);
         if (n < 0) {
             if (errno == EINTR) continue;
-            throw_errno("send");
+            return -1;
         }
         sent += static_cast<size_t>(n);
     }
+    return sent;
 }
 
 void establish_con_client(const Socket& client_sock, std::string_view ip)

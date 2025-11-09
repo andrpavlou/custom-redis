@@ -46,7 +46,7 @@ private:
 
 
 void throw_errno(const char* what);
-void read_line(int fd, std::string *out);
-void send_all(int fd, std::string data);
+ssize_t read_all(int fd, void *out, size_t r_bytes);
+ssize_t write_all(int fd, void* data, size_t total_size);
 void establish_con_client(const Socket& client_sock, std::string_view ip);
 void establish_con_server(const Socket& listener);

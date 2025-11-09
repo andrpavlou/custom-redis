@@ -1,23 +1,23 @@
 #include "common.h"
 
+#define MSG_LEN_SIZE    4
+#define MAX_MSG         128
 
-
-void handle_client(int client_fd, sockaddr_in client_addr) 
+void read_full(int fd, std::string &out)
 {
-    try {        
-        std::string line;
-        read_line(client_fd, &line);
+    std::string len_str(MSG_LEN_SIZE, '\0');
 
-        if (line.empty()) {
-            std::cout << "[handler] no data received (peer closed or timeout)\n";
-        } else {
-            std::cout << line;
-        }
+    ssize_t read_b = read_all(fd, len_str.data(), MSG_LEN_SIZE);
+    if (read_b < 0) throw_errno("read_all");
 
-    } catch (const std::system_error &e) {
-        std::cerr << "[handler] error: " << e.what() << "\n";
-    }
-    close(client_fd);
+    uint32_t len;
+    memcpy(&len, len_str.data(), MSG_LEN_SIZE);
+    len = ntohl(len);
+
+
+    out.resize(MAX_MSG, '\0');
+    read_b = read_all(fd, out.data(), len);
+    if (read_b <= 0) throw_errno("read_all");
 }
 
 int main(void) 
@@ -36,7 +36,16 @@ int main(void)
                 perror("accept");
                 continue;
             }
-            handle_client(client_fd, cli);
+            
+            std::string out;
+            read_full(client_fd, out);
+
+            if (out.empty()) {
+                std::cout << "[handler] no data received (peer closed or timeout)\n";
+            } else {
+                std::cout << out;
+            }
+            close(client_fd);
         }
         
     } catch (const std::system_error &e) {
