@@ -11,6 +11,10 @@
 #include <thread>
 #include <unistd.h>
 
+#define MSG_LEN_SIZE    4
+#define MAX_MSG         128
+
+
 class Socket {
 public:
     explicit Socket(int fd = -1) noexcept : fd_(fd) {}
@@ -47,6 +51,7 @@ private:
 
 void throw_errno(const char* what);
 ssize_t read_all(int fd, void *out, size_t r_bytes);
-ssize_t write_all(int fd, void* data, size_t total_size);
+ssize_t write_all(int fd, const void* data, size_t total_size);
+ssize_t query(int fd, const void* data);
 void establish_con_client(const Socket& client_sock, std::string_view ip);
 void establish_con_server(const Socket& listener);

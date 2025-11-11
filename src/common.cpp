@@ -13,22 +13,23 @@ ssize_t read_all(int fd, void *out, size_t r_bytes)
 
     while (total_read < r_bytes) {
         ssize_t n = read(fd, p + total_read, r_bytes - total_read);
+        total_read += static_cast<size_t>(n);
+
         if (n < 0) {
             if (errno == EINTR) continue;
             return -1;
         }
         if (n == 0) break;
-        total_read += static_cast<size_t>(n);
     }
     return static_cast<ssize_t>(total_read);;
 }
 
 
 
-ssize_t write_all(int fd, void* data, size_t total_size)
+ssize_t write_all(int fd, const void* data, size_t total_size)
 {
     size_t sent = 0;
-    char *p = static_cast<char *>(data);
+    const char *p = static_cast<const char *>(data);
     while (sent < total_size) {
         ssize_t n = write(fd, p + sent, total_size - sent);
         if (n < 0) {
@@ -40,13 +41,35 @@ ssize_t write_all(int fd, void* data, size_t total_size)
     return sent;
 }
 
+ssize_t query(int fd, const void* data)
+{
+    const char *p = static_cast<const char *>(data);
+
+    uint32_t data_len       = strlen(p);
+    uint32_t data_len_bo    = htonl(static_cast<uint32_t>(data_len));
+    constexpr size_t LEN_BYTES = sizeof(data_len);
+    
+    ssize_t sent = write_all(fd, &data_len_bo, LEN_BYTES);
+    if (sent != static_cast<ssize_t>(LEN_BYTES)) {
+        throw_errno("Query bad data len write");
+    }
+
+    sent = write_all(fd, p, data_len);
+    if (sent !=static_cast<ssize_t>(data_len)) {
+        throw_errno("Query bad data len write");
+    }
+
+    return sent;
+}
+
+
 void establish_con_client(const Socket& client_sock, std::string_view ip)
 {
     if (client_sock.get() < 0) throw_errno("socket");
 
     sockaddr_in srv{};
     srv.sin_family = AF_INET;
-    srv.sin_port = htons(1234);
+    srv.sin_port = ntohs(1234);
     srv.sin_addr.s_addr = ntohl(INADDR_LOOPBACK);
 
     if (connect(client_sock.get(), reinterpret_cast<sockaddr*>(&srv), sizeof(srv)) < 0)
@@ -63,8 +86,8 @@ void establish_con_server(const Socket& listener)
 
         sockaddr_in addr{};
         addr.sin_family = AF_INET;
-        addr.sin_port = htons(1234);
-        addr.sin_addr.s_addr = htonl(INADDR_ANY);
+        addr.sin_port = ntohs(1234);
+        addr.sin_addr.s_addr = ntohl(INADDR_ANY);
 
         if (bind(listener.get(), reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0)
             throw_errno("bind");
