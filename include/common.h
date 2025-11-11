@@ -52,6 +52,7 @@ private:
 void throw_errno(const char* what);
 ssize_t read_all(int fd, void *out, size_t r_bytes);
 ssize_t write_all(int fd, const void* data, size_t total_size);
+ssize_t read_full(int fd, void *out);
 ssize_t query(int fd, const void* data);
 void establish_con_client(const Socket& client_sock, std::string_view ip);
 void establish_con_server(const Socket& listener);
